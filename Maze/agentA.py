@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from typing import Literal, Union
+from priorityQueue import PriorityQueue
 from fifoQueue import FifoQueue
 import numpy as np
 import math
@@ -35,7 +36,7 @@ class Agent():
 
         while not done:
             print(step_counter)
-            time.sleep(1)
+            #time.sleep(1)
             action = ''
             goalId = self.model.get_goal(step_counter)[0]
             env.set_goal(goalId)
@@ -70,7 +71,7 @@ class Agent():
         visited = [None]*100
         for x in range(100):
             visited[x] = 0
-        fifoQ = FifoQueue()
+        priorityQ= PriorityQueue()
         matr_from = [None]*100
         for x in range(100):
             matr_from[x] = [None]*100
@@ -78,13 +79,16 @@ class Agent():
                 matr_from[x][y] = -1
 
 
+        arr_h = self.charge_heuristic(goal_position)
+
         """ posicion y desde donde """
-        fifoQ.push(actual_position)
+        priorityQ.push(actual_position, arr_h[actual_position])
         visited[actual_position] = 1
         matr_from[actual_position][actual_position] = actual_position
 
-        while(not reached and not fifoQ.is_empty()):
-            vortix = fifoQ.pop()
+        while(not reached and not priorityQ.is_empty()):
+            vortix_touple = priorityQ.pop()
+            vortix = vortix_touple[0]
             visited[vortix] = 1
 
             for x in range(100):
@@ -92,7 +96,7 @@ class Agent():
                     if(visited[x] == 0):
                         if(x != goal_position):
                             matr_from[vortix][x] = vortix
-                            fifoQ.push(x)
+                            priorityQ.push(x, arr_h[x])
                         else:
                             matr_from[vortix][x] = vortix
                             reached = True
@@ -127,8 +131,21 @@ class Agent():
                 actions.append('W')
 
         return actions
-
-
+    
+    def charge_heuristic(self, goal_position):
+        arr_h = np.zeros(100)
+        goal_y = math.floor(goal_position / 10)
+        goal_x = goal_position - (goal_y * 10)
+        for it in range(100):
+            it_y = math.floor(it / 10)
+            it_x = it - (it_y * 10)
+            dx = abs(goal_x - it_x)
+            dy = abs(goal_y - it_y)
+            # Manhattan distance is ok because never over estimate, always underestimate or its ok
+            # it is the shortest path if not walls exists
+            manhattan_distance = abs(dx + dy)
+            arr_h[it] = manhattan_distance
+        return arr_h
 
     def check_action(self, action):
         if action not in ["N", "E", "S", "W"]:
@@ -137,6 +154,7 @@ class Agent():
     def charge_maze(self, env):
         matr_maze = np.zeros((100, 100))
         file1 = open('C:\\Users\\fnico\\OneDrive\\Documentos\\Github\\InteligenciaArtificial\\Maze\\gym_maze\\envs\\maze_samples\\MazeEnv10x10_1.txt', 'r')
+        
         Lines = file1.readlines()
         for line in Lines:
             step = line.split()

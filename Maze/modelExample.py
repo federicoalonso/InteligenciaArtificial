@@ -6,7 +6,9 @@ class ModelExample(Model):
     def __init__(self, model_file):
         super().__init__(model_file)
         self.reset()
-        relative_path = 'gym_maze/envs/maze_samples/'
+        # relative_path = 'gym_maze/envs/maze_samples/'
+        relative_path = 'C:\\Users\\fnico\\OneDrive\\Documentos\\Github\\InteligenciaArtificial\\Maze\\gym_maze\\envs\\maze_samples\\'
+        
         self._load_model(relative_path + model_file)
 
     def _load_model(self, fullpath):

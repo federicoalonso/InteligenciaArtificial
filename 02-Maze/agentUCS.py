@@ -19,7 +19,7 @@ class Agent():
         return self._loop(env)
 
     def _loop(self, env):
-        print("Play manually...")
+        print("Play UCS...")
         obs = env.reset()
         print(obs)
         done = False

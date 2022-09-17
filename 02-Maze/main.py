@@ -3,10 +3,10 @@ import traceback
 
 from mazeEnvExtended import MazeEnvExtended
 #from agent import Agent
-from modelExample import ModelExample
-
-from agentUCS import Agent
-#from agentA import Agent
+#from modelExample import ModelExample
+from modelAS import ModelExample
+#from agentUCS import Agent
+from agentA import Agent
 
 
 envs = [
@@ -16,8 +16,8 @@ envs = [
 
 agents = [
     #(Agent, "InputAgent")
-    (Agent, "UCS"),
-    #(Agent, "A"),
+    #(Agent, "UCS"),
+    (Agent, "A"),
     #(AgentLRTA, "LRTA"),
 ]
 

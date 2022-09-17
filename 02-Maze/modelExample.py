@@ -34,7 +34,7 @@ class ModelExample(Model):
                         'N': -1, 'S': -1, 'E': -1, 'W': -1, 'From': -1, 'Visited': -1}
                     # agrego la arista
                     self.Maze[start][action] = end
-            print(self.Maze)
+            print(len(self.Maze))
 
     def charge_position(self, action):
         self.ActualPosition = self.Maze[self.ActualPosition][action]
@@ -43,8 +43,9 @@ class ModelExample(Model):
     def get_neighbour(self, vertex):
         neighbour = []
         for v in self.Maze[vertex]:
-            if v != vertex:
-                neighbour.push(self.Maze[vertex][v])
+            if v == 'N' or v == 'S' or v == 'E' or v == 'W':
+                if self.Maze[vertex][v] != vertex:
+                    neighbour.append(self.Maze[vertex][v])
         return neighbour
 
     def reset_maze(self):

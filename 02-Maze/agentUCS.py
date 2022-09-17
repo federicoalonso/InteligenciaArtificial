@@ -5,14 +5,11 @@ from fifoQueue import FifoQueue
 import numpy as np
 import math
 import time
-#from modelExample import ModelExample
-
-# DO NOT CHANGE THIS CLASS: EXTEND IT WITH YOUR OWN
-
+from modelExample import ModelExample
 
 class Agent():
 
-    def __init__(self, model):
+    def __init__(self, model: ModelExample):
         super().__init__()
         self.model = model
         print(model)
@@ -44,14 +41,6 @@ class Agent():
             
             action = actions.pop(0)
 
-            # if(action == 'N'):
-            #     actual_position -= 10
-            # elif(action == 'S'):
-            #     actual_position += 10
-            # elif(action == 'W'):
-            #     actual_position -= 1
-            # else:
-            #     actual_position += 1
             self.model.charge_position(action)
             
             self.check_action(action)
@@ -66,22 +55,10 @@ class Agent():
 
     def next_actions(self, goal_position):
         reached = False
-        len = len(self.model.Maze)
-
-        # visited = [None]*len
-        # for x in range(len):
-        #     visited[x] = 0
         fifoQ = FifoQueue()
-        # matr_from = [None]*len
-        # for x in range(len):
-        #     matr_from[x] = [None]*len
-        #     for y in range(len):
-        #         matr_from[x][y] = -1
-
+        self.model.reset_maze()
         """ posicion y desde donde """
         fifoQ.push(self.model.ActualPosition)
-        # visited[self.model.ActualPosition] = 1
-        # matr_from[self.model.ActualPosition][self.model.ActualPosition] = self.model.ActualPosition
         self.model.set_visited_from(self.model.ActualPosition,self.model.ActualPosition)
 
         while(not reached and not fifoQ.is_empty()):
@@ -98,34 +75,6 @@ class Agent():
 
         actions = self.model.get_path(goal_position)
         return actions
-    
-    # def generate_path(self, matr_from, goal_position):
-    #     actions_bk = []
-    #     end = False
-    #     pos = goal_position
-    #     while(not end):
-    #         for x in range(100):
-    #             it = matr_from[x][pos]
-    #             if(it != -1):
-    #                 actions_bk.append(self.model.Maze[x][pos])
-    #                 if(it == pos):
-    #                     end = True
-    #                     actions_bk.pop()
-    #                 else:
-    #                     pos = it
-    #     actions = []
-
-    #     for x in reversed(actions_bk):
-    #         if(x == 1):
-    #             actions.append('N')
-    #         elif(x == 2):
-    #             actions.append('S')
-    #         elif(x == 3):
-    #             actions.append('E')
-    #         else:
-    #             actions.append('W')
-
-    #     return actions
 
     def check_action(self, action):
         if action not in ["N", "E", "S", "W"]:

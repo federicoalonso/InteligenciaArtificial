@@ -31,7 +31,7 @@ class Agent():
 
         while not done:
             print(step_counter)
-            time.sleep(1)
+            #time.sleep(1)
             action = ''
             goalId = self.model.get_goal(step_counter)[0]
             env.set_goal(goalId)

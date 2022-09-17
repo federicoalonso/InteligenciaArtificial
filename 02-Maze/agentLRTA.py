@@ -1,178 +1,303 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
+import math
 from typing import Literal, Union
 from priorityQueue import PriorityQueue
 from fifoQueue import FifoQueue
 import numpy as np
-import math
 import time
-
-# DO NOT CHANGE THIS CLASS: EXTEND IT WITH YOUR OWN
-
+from modelAS import ModelExample
 
 class Agent():
 
-    def __init__(self, model):
+    def __init__(self, model: ModelExample):
         super().__init__()
         self.model = model
         print(model)
+        self.Maze = dict()
+        self.Steps = 0
+        self.GoalPosition = self.model.get_goal(self.Steps)[0]
+        self.set_initial_maze()
+        self.ActualPosition = 0
+        self.UnknownNeigbours = PriorityQueue()
 
     def run(self, env):
         self.model.reset()
         return self._loop(env)
 
     def _loop(self, env):
-        print("Play manually...")
+        print("Play LRTA*...")
         obs = env.reset()
         print(obs)
         done = False
-        step_counter = 0
-        actual_position = 0
         all_rewards = 0
         env.render()
-        goal_position = -1
-        matr_maze = self.charge_maze(env)
         actions = []
+        prev_goal_position = 0
 
         while not done:
-            print(step_counter)
-            time.sleep(1)
+            #time.sleep(1)
             action = ''
-            goalId = self.model.get_goal(step_counter)[0]
-            env.set_goal(goalId)
-            if(goal_position == -1 or goal_position != goalId):
-                goal_position = goalId
-                actions = self.next_actions(actual_position, matr_maze, goal_position)
+            self.GoalPosition = self.model.get_goal(self.Steps)[0]
+            env.set_goal(self.GoalPosition)
+
+
+
+            if len(actions) == 0:
+                if(self.Steps == 0 or prev_goal_position != self.GoalPosition):
+                    prev_goal_position = self.GoalPosition
+                    reacheble = self.goal_is_reacheable()
+                    if reacheble:
+                        actions = self.next_actions(self.GoalPosition)
+                actions = self.charge_new_possibilities(self.ActualPosition)
             
             action = actions.pop(0)
 
-            if(action == 'N'):
-                actual_position -= 10
-            elif(action == 'S'):
-                actual_position += 10
-            elif(action == 'W'):
-                actual_position -= 1
-            else:
-                actual_position += 1
+            print(f"Pasos {self.Steps} y la accion es {action}.")
+            if self.Steps == 31:
+                print(f"Error.")
 
             self.check_action(action)
             obs, reward, done_env, _ = env.step(action)
+            
+            prev_pos = self.ActualPosition
+            self.ActualPosition = obs[1] * 10 + obs[0]
+            self.save_move(prev_pos, action)
+
             print(f'{obs=} {reward=} {done_env=}')
             all_rewards += reward
             done = done_env and self.model.is_win_goal()
             env.render()
-            step_counter += 1
+            self.Steps += 1
 
-        return all_rewards, step_counter
+        return all_rewards, self.Steps
 
-    def next_actions(self, actual_position, matr_maze, goal_position):
-        reached = False
+    def save_move(self, prev_position, action):
+        if prev_position == self.ActualPosition:
+            self.Maze[prev_position][action] = prev_position
+        else:
+            self.Maze[prev_position][action] = self.ActualPosition
+            if action == 'N':
+                self.Maze[self.ActualPosition]['S'] = prev_position
+            elif action == 'S':
+                self.Maze[self.ActualPosition]['N'] = prev_position
+            elif action == 'E':
+                self.Maze[self.ActualPosition]['W'] = prev_position
+            else:
+                self.Maze[self.ActualPosition]['E'] = prev_position
 
-        visited = [None]*100
-        for x in range(100):
-            visited[x] = 0
-        priorityQ= PriorityQueue()
-        matr_from = [None]*100
-        for x in range(100):
-            matr_from[x] = [None]*100
-            for y in range(100):
-                matr_from[x][y] = -1
+    def charge_new_possibilities(self, position):
+        if self.Maze[position]['enqueue_unknown_actions'] == -1:
+            self.Maze[position]['enqueue_unknown_actions'] = 0
+            if self.Maze[position]['W'] == -1:
+                self.UnknownNeigbours.push((position, 'W'), self.charge_heuristic(position - 1))
+            if self.Maze[position]['E'] == -1:
+                self.UnknownNeigbours.push((position, 'E'), self.charge_heuristic(position + 1))
+            if self.Maze[position]['S'] == -1:
+                self.UnknownNeigbours.push((position, 'S'), self.charge_heuristic(position + 10))
+            if self.Maze[position]['N'] == -1:
+                self.UnknownNeigbours.push((position, 'N'), self.charge_heuristic(position - 10))
+        self.update_weights()
+        better = self.UnknownNeigbours.pop()
+        actions = self.next_actions(better[0][0])
+        betteraction = better[0][1]
+        return actions + [betteraction]
+
+    def update_weights(self):
+        list = []
+        while not self.UnknownNeigbours.is_empty():
+            it = self.UnknownNeigbours.pop()
+            list.append(it)
+        # ((pos, act), h)
+        while len(list) != 0:
+            it = list.pop()
+            act = self.next_actions(it[0][0])
+            cost = self.Maze[it[0][0]]['h'] + len(act)
+            #cost = self.Maze[it[0][0]]['h'] + self.full_heuristic(self.ActualPosition, it[0][0])
+            self.UnknownNeigbours.push((it[0][0],it[0][1]), cost)
 
 
-        arr_h = self.charge_heuristic(goal_position)
 
+    def charge_position(self, action):
+        self.ActualPosition = self.Maze[self.ActualPosition][action]
+        return self.ActualPosition
+
+    # la dejo por aca para ver si aplica luego, no esta terminada ni ahi
+    def get_unknown_actions(self, position):
+        # no he verificado a sus vecinos aun
+        if self.Maze[position]['enqueue_unknown_actions'] == -1:
+            for k in self.Maze[position]:
+                if k == 'N' or k == 'S' or k == 'E' or k == 'W':
+                    # no ha probado la opcion
+                    if self.Maze[position][k] == -1:
+                        self.UnknownNeigbours
+
+    def set_initial_maze(self):
+        for v in range(100):
+            manhattan_distance = self.charge_heuristic(v)
+            if v == 0:
+                self.Maze[v] = {'N': v, 'S': -1, 'E': -1, 'W': v, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+            elif v == 9:
+                self.Maze[v] = {'N': v, 'S': -1, 'E': v, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+            elif v == 90:
+                self.Maze[v] = {'N': -1, 'S': v, 'E': -1, 'W': v, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+            elif v == 99:
+                self.Maze[v] = {'N': -1, 'S': v, 'E': v, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+            else:
+                if v < 9:
+                    self.Maze[v] = {'N': v, 'S': -1, 'E': -1, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+                elif v > 90:
+                    self.Maze[v] = {'N': -1, 'S': v, 'E': -1, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+                elif v % 10 == 0:
+                    self.Maze[v] = {'N': -1, 'S': -1, 'E': -1, 'W': v, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+                elif (v + 1) % 10 == 0:
+                    self.Maze[v] = {'N': -1, 'S': -1, 'E': v, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+                else:
+                    self.Maze[v] = {'N': -1, 'S': -1, 'E': -1, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance, 'enqueue_unknown_actions': -1}
+
+    def charge_heuristic(self, position):
+        goal_y = math.floor(self.GoalPosition / 10)
+        goal_x = self.GoalPosition - (goal_y * 10)
+        it_y = math.floor(position / 10)
+        it_x = position - (it_y * 10)
+        dx = abs(goal_x - it_x)
+        dy = abs(goal_y - it_y)
+        # Manhattan distance is ok because never over estimate, always underestimate or its ok
+        # it is the shortest path if not walls exists
+        manhattan_distance = abs(dx + dy)
+        return manhattan_distance
+
+    def full_heuristic(self, position, dest):
+        goal_y = math.floor(dest / 10)
+        goal_x = dest - (goal_y * 10)
+        it_y = math.floor(position / 10)
+        it_x = position - (it_y * 10)
+        dx = abs(goal_x - it_x)
+        dy = abs(goal_y - it_y)
+        # Manhattan distance is ok because never over estimate, always underestimate or its ok
+        # it is the shortest path if not walls exists
+        manhattan_distance = abs(dx + dy)
+        return manhattan_distance
+
+    def goal_is_reacheable(self):
+        pos = self.GoalPosition
+        if pos == 0:
+            return self.Maze[pos + 1]['W'] != -1 or self.Maze[pos + 10]['N'] != -1
+        elif pos == 9:
+            return self.Maze[pos - 1]['E'] != -1 or self.Maze[pos + 10]['N'] != -1
+        elif pos == 90:
+            return self.Maze[pos + 1]['W'] != -1 or self.Maze[pos - 10]['S'] != -1
+        elif pos == 99:
+            return self.Maze[pos - 1]['E'] != -1 or self.Maze[pos - 10]['S'] != -1
+        else:
+            if pos < 9:
+                return self.Maze[pos + 1]['W'] != -1 or self.Maze[pos + 10]['N'] != -1 or self.Maze[pos - 1]['E'] != -1
+            elif pos > 90:
+                return self.Maze[pos + 1]['W'] != -1 or self.Maze[pos - 10]['S'] != -1 or self.Maze[pos - 1]['E'] != -1
+            elif pos % 10 == 0:
+                return self.Maze[pos - 10]['S'] != -1 or self.Maze[pos + 10]['N'] != -1 or self.Maze[pos + 1]['W'] != -1
+            elif (pos + 1) % 10 == 0:
+                return self.Maze[pos - 10]['S'] != -1 or self.Maze[pos + 10]['N'] != -1 or self.Maze[pos - 1]['E'] != -1
+            else:
+                return self.Maze[pos - 10]['S'] != -1 or self.Maze[pos + 10]['N'] != -1 or self.Maze[pos - 1]['E'] != -1 or self.Maze[pos + 1]['W'] != -1
+
+
+
+
+
+
+    def next_actions(self, goal):
+        reached = self.ActualPosition == goal
+        priorityQ = PriorityQueue()
+        self.reset_maze()
         """ posicion y desde donde """
-        priorityQ.push(actual_position, arr_h[actual_position])
-        visited[actual_position] = 1
-        matr_from[actual_position][actual_position] = actual_position
+        priorityQ.push(self.ActualPosition, self.Maze[self.ActualPosition]['h'])
+        self.set_visited_from(self.ActualPosition,self.ActualPosition)
 
         while(not reached and not priorityQ.is_empty()):
-            vortix_touple = priorityQ.pop()
-            vortix = vortix_touple[0]
-            visited[vortix] = 1
+            vertex_touple = priorityQ.pop()
+            vertex = vertex_touple[0]
+            self.set_visited(vertex)
+            neighbours = self.get_neighbour(vertex)
 
-            for x in range(100):
-                if(matr_maze[vortix][x] != 0 and x != vortix):
-                    if(visited[x] == 0):
-                        if(x != goal_position):
-                            matr_from[vortix][x] = vortix
-                            priorityQ.push(x, arr_h[x])
-                        else:
-                            matr_from[vortix][x] = vortix
-                            reached = True
-
-        actions = self.generate_path(matr_from, goal_position, matr_maze)
-        return actions
-    
-    def generate_path(self, matr_from, goal_position, matr_maze):
-        actions_bk = []
-        end = False
-        pos = goal_position
-        while(not end):
-            for x in range(100):
-                it = matr_from[x][pos]
-                if(it != -1):
-                    actions_bk.append(matr_maze[x][pos])
-                    if(it == pos):
-                        end = True
-                        actions_bk.pop()
+            for v in neighbours:
+                if not self.was_visited(v):
+                    self.set_visited_from(v, vertex)
+                    if(v != goal):
+                        priorityQ.push(v, self.Maze[v]['h'])
                     else:
-                        pos = it
-        actions = []
+                        reached = True
 
-        for x in reversed(actions_bk):
-            if(x == 1):
-                actions.append('N')
-            elif(x == 2):
-                actions.append('S')
-            elif(x == 3):
-                actions.append('E')
-            else:
-                actions.append('W')
-
+        actions = self.get_path(goal)
         return actions
-    
-    def charge_heuristic(self, goal_position):
-        arr_h = np.zeros(100)
-        goal_y = math.floor(goal_position / 10)
-        goal_x = goal_position - (goal_y * 10)
-        for it in range(100):
-            it_y = math.floor(it / 10)
-            it_x = it - (it_y * 10)
-            dx = abs(goal_x - it_x)
-            dy = abs(goal_y - it_y)
-            # Manhattan distance is ok because never over estimate, always underestimate or its ok
-            # it is the shortest path if not walls exists
-            manhattan_distance = abs(dx + dy)
-            arr_h[it] = manhattan_distance
-        return arr_h
 
     def check_action(self, action):
         if action not in ["N", "E", "S", "W"]:
             raise ValueError("Run Ended - Invalid Action")
 
-    def charge_maze(self, env):
-        matr_maze = np.zeros((100, 100))
-        file1 = open('C:\\Users\\fnico\\OneDrive\\Documentos\\Github\\InteligenciaArtificial\\Maze\\gym_maze\\envs\\maze_samples\\MazeEnv10x10_1.txt', 'r')
-        
-        Lines = file1.readlines()
-        for line in Lines:
-            step = line.split()
-            start = int(step[0])
-            action = step[1]
-            end = int(step[2])
 
-            if(start != end):
-                if(action == 'N'):
-                    matr_maze[start][end] = 1
-                    matr_maze[end][start] = 2
-                elif(action == 'S'):
-                    matr_maze[start][end] = 2
-                    matr_maze[end][start] = 1
-                elif(action == 'E'):
-                    matr_maze[start][end] = 3
-                    matr_maze[end][start] = 4
+
+
+    def get_neighbour(self, vertex):
+        neighbour = []
+        for v in self.Maze[vertex]:
+            if v == 'N' or v == 'S' or v == 'E' or v == 'W':
+                if (self.Maze[vertex][v] != vertex) and (self.Maze[vertex][v] != -1):
+                    neighbour.append(self.Maze[vertex][v])
+        return neighbour
+
+    def reset_maze(self):
+        self.reset_from()
+        self.reset_visited()
+        #self.reset_heuristic(self.Steps)
+
+    def reset_visited(self):
+        for v in self.Maze:
+            self.Maze[v]['Visited'] = -1
+
+    def reset_from(self):
+        for v in self.Maze:
+            self.Maze[v]['From'] = -1
+
+    def reset_heuristic(self, step):
+        for v in self.Maze:
+            manhattan_distance = self.charge_heuristic(v, steps=step)
+            self.Maze[v]['h'] = manhattan_distance
+
+    def set_visited(self, vertex):
+        self.Maze[vertex]['Visited'] = 1
+    
+    def set_visited_from(self, vertex, v_from):
+        self.Maze[vertex]['From'] = v_from
+
+    def was_visited(self, vertex):
+        return self.Maze[vertex]['Visited'] == 1
+    
+    def get_path(self, destination):
+        # si llega a -1 o a la misma posicion termina
+        actions = []
+        not_done = True
+        while not_done:
+        # me fijo el from
+            v_from = self.Maze[destination]['From']
+            if v_from == -1 or v_from == destination:
+                not_done = False
+            else:
+                if self.Maze[v_from]['N'] == destination:
+                    actions = ['N'] + actions
+                    destination = v_from
+                elif self.Maze[v_from]['S'] == destination:
+                    actions = ['S'] + actions
+                    destination = v_from
+                elif self.Maze[v_from]['E'] == destination:
+                    actions = ['E'] + actions
+                    destination = v_from
+                elif self.Maze[v_from]['W'] == destination:
+                    actions = ['W'] + actions
+                    destination = v_from
                 else:
-                    matr_maze[start][end] = 4
-                    matr_maze[end][start] = 3
-        return matr_maze
+                    not_done = False
+        # voy hasta el from y me fijo que accion lleva a el
+        # si ninguna termino
+        # si alguna, la agrego al principio
+        return actions

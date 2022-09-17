@@ -7,7 +7,7 @@ from mazeEnvExtended import MazeEnvExtended
 from modelAS import ModelExample
 #from agentUCS import Agent
 from agentA import Agent
-
+# from agentLRTA import Agent
 
 envs = [
     (MazeEnvExtended, "MazeEnv10x10_1"),
@@ -18,7 +18,7 @@ agents = [
     #(Agent, "InputAgent")
     #(Agent, "UCS"),
     (Agent, "A"),
-    #(AgentLRTA, "LRTA"),
+    # (Agent, "LRTA"),
 ]
 
 models = [

@@ -5,11 +5,14 @@ class Policy():
         self.state = ['s1', 's2', 's3', 's4']
         self.actions = []
         self.TMGame = TranviaMagico()
-        self.type = ''
+        self.defautlAction = ''
+        self.turn = 0
         self.initialState = 's1'
 
-    def action(self, state):
-        return self.type
+    def action(self):
+        if len(self.actions) > self.turn:
+            return self.actions[self.turn]
+        return self.defautlAction
         
     def estados_posibles(self, state, action):
         if state == 's1':

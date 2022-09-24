@@ -7,13 +7,13 @@ def main():
     try:
         policyWalk = Policy()
         PE = PolicyEvaluation()
-        policyWalk.type = 'walk'
+        policyWalk.defautlAction = 'walk'
         val = PE.pol_eval(policyWalk)
 
         print(f"El valor de la policy walk es {val}.")
 
         policyTranvia = Policy()
-        policyTranvia.type = 'tranvia'
+        policyTranvia.defautlAction = 'tranvia'
         val = PE.pol_eval(policyTranvia)
 
         print(f"El valor de la policy tranvia es {val}.")

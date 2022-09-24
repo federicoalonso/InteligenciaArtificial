@@ -25,10 +25,10 @@ class PolicyEvaluation():
         value = 0
         if(policy.type == 'stay'):
             prev_val = -1
-            value = 4
             while(value - prev_val > 0.1):
                 prev_val = value
                 value = self.DiceGame.P['in'][policy.type]['in'] * (self.DiceGame.R['in'][policy.type]['in'] + value)
+            value += 4
         else:
             value = self.DiceGame.P['in'][policy.type]['end'] * (self.DiceGame.R['in'][policy.type]['end'] + value)
         return value

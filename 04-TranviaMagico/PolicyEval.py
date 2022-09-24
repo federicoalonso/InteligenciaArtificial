@@ -19,7 +19,7 @@ class PolicyEvaluation():
             # para cada estado
             for s in pi.state: 
                 # le pedimos la accion a la policy
-                a = pi.action() 
+                a = pi.action(s) 
                 # para cada estado que podemos llegar desde s con la accion a
                 for s_2 in pi.estados_posibles(s, a): 
                 # lo mismo que pusiste vos, pero ahora le sumamos todos los estados posibles a los que llegamos

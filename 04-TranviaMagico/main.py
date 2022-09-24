@@ -17,6 +17,13 @@ def main():
         val = PE.pol_eval(policyTranvia)
 
         print(f"El valor de la policy tranvia es {val}.")
+
+        # policyWT1 = Policy()
+        # policyWT1.defautlAction = 'walk'
+        # policyWT1.actions['tranvia']
+        # val = PE.pol_eval(policyWT1)
+
+        # print(f"El valor de la policy tranvia es {val}.")
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())

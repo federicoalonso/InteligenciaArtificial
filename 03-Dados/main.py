@@ -7,7 +7,7 @@ def main():
     try:
         policyStay = Policy()
         PE = PolicyEvaluation()
-        val = PE.pol_eval_sin_env(policyStay)
+        val = PE.pol_eval(policyStay)
 
         print(f"El valor de la policy stay es {val}.")
 

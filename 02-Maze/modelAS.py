@@ -31,7 +31,9 @@ class ModelExample(Model):
                     self.Maze[start][action] = end
                 else:
                     # Lo creo, -1 es porque no se que hay
-                    manhattan_distance = self.charge_heuristic(start)
+                    # manhattan_distance = self.charge_heuristic(start)
+                    # manhattan_distance = self.charge_heuristic_cte(start)
+                    manhattan_distance = self.charge_heuristic_cte(start)
                     self.Maze[start] = {
                         'N': -1, 'S': -1, 'E': -1, 'W': -1, 'From': -1, 'Visited': -1, 'h': manhattan_distance}
                     # agrego la arista
@@ -52,6 +54,14 @@ class ModelExample(Model):
         # it is the shortest path if not walls exists
         manhattan_distance = abs(dx + dy)
         return manhattan_distance
+    
+    def charge_heuristic_cte(self, position, *args, **kwargs):
+        return 1
+    
+    def charge_heuristic_bad(self, position, *args, **kwargs):
+        steps = kwargs.get('steps', 0)
+        goal_position = self.get_goal(steps)[0]
+        return abs(position)
 
     def charge_position(self, action):
         self.ActualPosition = self.Maze[self.ActualPosition][action]
@@ -81,7 +91,7 @@ class ModelExample(Model):
 
     def reset_heuristic(self, step):
         for v in self.Maze:
-            manhattan_distance = self.charge_heuristic(v, steps=step)
+            manhattan_distance = self.charge_heuristic_cte(v, steps=step)
             self.Maze[v]['h'] = manhattan_distance
 
     def set_visited(self, vertex):

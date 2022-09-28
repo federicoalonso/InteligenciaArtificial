@@ -6,8 +6,8 @@ from mazeEnvExtended import MazeEnvExtended
 #from modelExample import ModelExample
 from modelAS import ModelExample
 #from agentUCS import Agent
-from agentA import Agent
-# from agentLRTA import Agent
+#from agentA import Agent
+from agentLRTA import Agent
 
 envs = [
     (MazeEnvExtended, "MazeEnv10x10_1"),
@@ -17,8 +17,8 @@ envs = [
 agents = [
     #(Agent, "InputAgent")
     #(Agent, "UCS"),
-    (Agent, "A"),
-    # (Agent, "LRTA"),
+    #(Agent, "A"),
+    (Agent, "LRTA"),
 ]
 
 models = [
@@ -34,10 +34,10 @@ def main():
                 print(e_name, a_name, m_name)
                 try:
                     # si queremos que se vea con interfaz grafica
-                    # run(env(maze_file=e_name + ".npy", mode="human"),
-                    #     agent(model(model_file=e_name + ".txt")))
-                    run(env(maze_file=e_name + ".npy"),
-                        agent(model(model_file=e_name + ".txt")))
+                    run(env(maze_file=e_name + ".npy", mode="human"),
+                         agent(model(model_file=e_name + ".txt")))
+                    #run(env(maze_file=e_name + ".npy"),
+                    #    agent(model(model_file=e_name + ".txt")))
                 except Exception as e:
                     print(str(e))
                     print(traceback.format_exc())

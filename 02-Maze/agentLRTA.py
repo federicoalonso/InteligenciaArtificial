@@ -36,7 +36,7 @@ class Agent():
         prev_goal_position = 0
 
         while not done:
-            #time.sleep(1)
+            time.sleep(1)
             action = ''
             self.GoalPosition = self.model.get_goal(self.Steps)[0]
             env.set_goal(self.GoalPosition)
